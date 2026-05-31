@@ -1,4 +1,4 @@
-// scanner.js
+// scanner.js - iOS 1D/2D Barkod Odaklı Kesin Çözüm
 document.addEventListener('DOMContentLoaded', () => {
     const videoElement = document.getElementById('cameraFeed');
     const resultCard = document.getElementById('resultCard');
@@ -7,80 +7,110 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('statusText');
     const scanStatusDiv = document.getElementById('scanStatus');
     
-    // Arayüz Kontrolleri
     const flashBtn = document.getElementById('flashBtn');
     const mainScanBtn = document.getElementById('mainScanBtn');
     const zoomSlider = document.getElementById('zoomSlider');
     const zoomValue = document.getElementById('zoomValue');
 
-    const codeReader = new ZXing.BrowserMultiFormatReader();
-    let isScanning = false; 
+    // 1. KÜTÜPHANEYİ ÖZEL AYARLARLA YAPILANDIRALIM
+    const hints = new Map();
+    
+    // Çizgilerin bulanıklaşmasını önlemek için derinlemesine analiz modunu açıyoruz
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    
+    // Hem QR hem de görseldeki gibi tüm standart ürün barkod formatlarını kesin olarak tanımlıyoruz
+    const formats = [
+        ZXing.BarcodeFormat.QR_CODE,
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.UPC_A
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+
+    const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+    let isScanning = true; 
     let videoTrack = null;
+    let localStream = null;
 
+    // 2. iOS SAFARI İÇİN EN KARARLI KAMERA BAĞLANTI YÖNTEMİ
     async function startCamera() {
+        const constraints = {
+            video: {
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 }
+            },
+            audio: false
+        };
+
         try {
-            // Çözünürlük ve aspect ratio (en-boy oranı) kısıtlaması getirerek esnemeyi önlüyoruz
-            const constraints = {
-                video: {
-                    facingMode: 'environment',
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    aspectRatio: { ideal: 1.7777777778 } // 16:9 standart oran
-                }
-            };
+            // Kamerayı manüel olarak başlatıp video elementine bağlıyoruz
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            videoElement.srcObject = localStream;
+            videoElement.setAttribute('playsinline', true); // iOS Safari zorunluluğu
+            await videoElement.play();
 
-            // Kamerayı video etiketine bağla ve tarama döngüsünü başlat
-            await codeReader.decodeFromConstraints(constraints, 'cameraFeed', (result, err) => {
-                if (!videoTrack && videoElement.srcObject) {
-                    videoTrack = videoElement.srcObject.getVideoTracks()[0];
-                    initCameraCapabilities();
-                }
+            videoTrack = localStream.getVideoTracks()[0];
+            initCameraCapabilities();
 
+            // Taramayı doğrudan video akışı üzerinden başlatıyoruz
+            codeReader.decodeFromVideoElement(videoElement, (result, err) => {
                 if (result && isScanning) {
-                    // Tekli veya Sürekli tarama moduna göre duraklatma mantığı
+                    
+                    // Sürekli veya tekli tarama kontrolü
                     const isContinuous = document.getElementById('modeContinuous').classList.contains('active');
                     if (!isContinuous) {
                         stopScanningMode();
+                    } else {
+                        // Sürekli modda aynı kodu saliseler içinde üst üste okumaması için kısa bir duraksama
+                        isScanning = false;
+                        setTimeout(() => { if(mainScanBtn.classList.contains('active')) isScanning = true; }, 2000);
                     }
 
+                    // Titreşim geri bildirimi
                     if (navigator.vibrate) navigator.vibrate(150);
 
-                    // Sonuçları ekrana bas
+                    // Sonuçları arayüze bas
                     resultTypeBadge.innerText = result.barcodeFormat.replace(/_/g, ' ');
                     resultContent.innerText = result.text;
                     resultCard.classList.remove('hidden');
 
                     scanStatusDiv.classList.remove('idle');
                     scanStatusDiv.classList.add('success');
-                    statusText.innerText = "Başarılı!";
+                    if (statusText) statusText.innerText = "Başarılı!";
                     
-                    if (isContinuous) {
-                        setTimeout(() => {
-                            if(isScanning) statusText.innerText = "Taranıyor...";
-                            scanStatusDiv.classList.remove('success');
-                        }, 2000);
-                    }
+                    setTimeout(() => {
+                        scanStatusDiv.classList.remove('success');
+                        if (isScanning && statusText) statusText.innerText = "Taranıyor...";
+                    }, 2000);
                 }
             });
 
-            // İlk açılışta otomatik taramayı başlat
             startScanningMode();
 
         } catch (error) {
-            console.error("Kamera başlatılamadı:", error);
+            console.error("Kamera bağlantı hatası:", error);
+            if (statusText) statusText.innerText = "Kamera Başlatılamadı";
         }
     }
 
-    // Donanım özelliklerini (Flaş ve Zoom) kontrol etme
+    // Donanım yeteneklerini (Zoom/Flaş) denetle
     function initCameraCapabilities() {
         if (!videoTrack) return;
-        const capabilities = videoTrack.getCapabilities();
-
-        // Cihaz zoom destekliyorsa slider'ı ayarla
-        if (capabilities.zoom) {
-            zoomSlider.min = capabilities.zoom.min;
-            zoomSlider.max = capabilities.zoom.max;
-            zoomSlider.step = 0.1;
+        try {
+            const capabilities = videoTrack.getCapabilities();
+            if (capabilities.zoom) {
+                zoomSlider.min = capabilities.zoom.min;
+                zoomSlider.max = capabilities.zoom.max;
+                zoomSlider.step = 0.1;
+                zoomSlider.value = videoTrack.getSettings().zoom || 1;
+                zoomValue.innerText = parseFloat(zoomSlider.value).toFixed(1) + 'x';
+            }
+        } catch (e) {
+            console.log("Cihaz zoom yetenekleri alınamadı.");
         }
     }
 
@@ -89,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainScanBtn.classList.add('active');
         document.getElementById('scanBtnLabel').innerText = "Taramayı Durdur";
         scanStatusDiv.classList.remove('idle');
-        statusText.innerText = "Taranıyor...";
+        if (statusText) statusText.innerText = "Taranıyor...";
     }
 
     function stopScanningMode() {
@@ -97,12 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
         mainScanBtn.classList.remove('active');
         document.getElementById('scanBtnLabel').innerText = "Taramayı Başlat";
         scanStatusDiv.classList.add('idle');
-        statusText.innerText = "Beklemede";
+        if (statusText) statusText.innerText = "Beklemede";
     }
 
-    // ---- Buton Fonksiyonları ----
+    // ---- Buton Kontrolleri ----
 
-    // Büyük Yuvarlak Buton: Taramayı Aç / Kapat
+    // Ana Büyük Buton: Taramayı Manuel Aç/Kapat
     mainScanBtn.addEventListener('click', () => {
         if (isScanning) {
             stopScanningMode();
@@ -112,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Flaş Butonu
+    // Flaş Kontrolü
     flashBtn.addEventListener('click', async () => {
         if (!videoTrack) return;
         try {
@@ -125,31 +155,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     advanced: [{ torch: torchState }]
                 });
                 flashBtn.classList.toggle('active', torchState);
-            } else {
-                alert("Bu cihazın kamerası flaş kontrolünü desteklemiyor (iOS Safari web tarayıcılarında flaş izni kısıtlı olabilir).");
             }
         } catch (err) {
-            console.error("Flaş değiştirilemedi:", err);
+            console.error("Flaş kontrolü bu tarayıcıda desteklenmiyor:", err);
         }
     });
 
-    // Alt Kaydırmalı Çubuk (Zoom Slider) ne işe yarıyor: Kamerayı Yakınlaştırır
+    // Zoom Çubuğu
     zoomSlider.addEventListener('input', async (e) => {
         const val = e.target.value;
         zoomValue.innerText = parseFloat(val).toFixed(1) + 'x';
-        
         if (videoTrack && videoTrack.getCapabilities().zoom) {
             try {
-                await videoTrack.applyConstraints({
-                    advanced: [{ zoom: val }]
-                });
+                await videoTrack.applyConstraints({ advanced: [{ zoom: val }] });
             } catch (err) {
                 console.error("Zoom uygulanamadı:", err);
             }
         }
     });
 
-    // Mod Değiştirme Butonları (Sürekli / Tekli)
+    // Mod Seçimleri
     const modeContinuous = document.getElementById('modeContinuous');
     const modeSingle = document.getElementById('modeSingle');
 
