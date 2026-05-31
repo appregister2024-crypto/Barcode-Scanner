@@ -1,5 +1,5 @@
-// scanner.js - Cihazın Kendi Native Tarayıcısını Kullanan Kararlı Sürüm
-document.addEventListener('DOMContentLoaded', async () => {
+// scanner.js - iOS Kararlı ve Siyah Ekran Engelleyici Sürüm
+document.addEventListener('DOMContentLoaded', () => {
     const video = document.getElementById('cameraFeed');
     const resultCard = document.getElementById('resultCard');
     const resultContent = document.getElementById('resultContent');
@@ -8,80 +8,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     const scanStatusDiv = document.getElementById('scanStatus');
     const mainScanBtn = document.getElementById('mainScanBtn');
 
-    // 1. Tarayıcının Native Barkod Motorunu Destekleyip Desteklemediğini Kontrol Et
-    if (!('BarcodeDetector' in window)) {
-        alert("Tarayıcınız güncel native Barkod API'sini desteklemiyor. Lütfen güncel Safari veya Chrome kullanın.");
-        if (statusText) statusText.innerText = "Desteklenmeyen Tarayıcı";
-        return;
-    }
+    // 1. Kütüphane Ayarları (Sadece EAN ve QR odaklı)
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.QR_CODE,
+        ZXing.BarcodeFormat.CODE_128
+    ]);
 
-    // Okunmasını istediğimiz formatları sisteme kaydediyoruz
-    const barcodeDetector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39']
-    });
-
+    const codeReader = new ZXing.BrowserMultiFormatReader(hints);
     let isScanning = true;
-    let animationFrameId = null;
 
-    // 2. Kamerayı Standart Standartlarda Başlat
-    async function startCamera() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: false
-            });
-            video.srcObject = stream;
-            video.setAttribute('playsinline', true);
-            await video.play();
-            
-            if (statusText) statusText.innerText = "Taranıyor...";
-            startScanLoop();
-        } catch (err) {
-            console.error("Kamera izni veya başlatma hatası:", err);
-            if (statusText) statusText.innerText = "Kamera Hatası!";
-        }
-    }
-
-    // 3. İşlemciyi Yormayan, Doğrudan Donanımı Kullanan Akıcı Tarama Döngüsü
-    function startScanLoop() {
-        async function checkFrame() {
-            if (!isScanning) {
-                animationFrameId = requestAnimationFrame(checkFrame);
-                return;
-            }
-
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                try {
-                    // Apple'ın kendi işletim sistemi arkada görüntüyü analiz eder
-                    const barcodes = await barcodeDetector.detect(video);
-                    if (barcodes.length > 0) {
-                        handleSuccess(barcodes[0]); // İlk bulduğu barkodu işle
-                    }
-                } catch (err) {
-                    console.error("Tarama hatası:", err);
-                }
-            }
-            animationFrameId = requestAnimationFrame(checkFrame);
-        }
-        animationFrameId = requestAnimationFrame(checkFrame);
-    }
-
-    // 4. Başarılı Sonuç Yönetimi
-    function handleSuccess(barcode) {
-        isScanning = false; // Üst üste binlerce kez okumaması için kilitle
-        
+    // Sonuç Başarılı Olduğunda Çalışacak Fonksiyon
+    function handleResult(result) {
+        isScanning = false; // Üst üste binlerce kez okumayı engelle
         if (navigator.vibrate) navigator.vibrate(150);
 
-        // Sonuçları şık arayüz kartına yerleştir
-        resultTypeBadge.innerText = barcode.format.toUpperCase().replace('_', ' ');
-        resultContent.innerText = barcode.rawValue;
+        // Arayüze sonuçları yazdır
+        resultTypeBadge.innerText = result.barcodeFormat.replace(/_/g, ' ');
+        resultContent.innerText = result.text;
         resultCard.classList.remove('hidden');
 
         scanStatusDiv.classList.remove('idle');
         scanStatusDiv.classList.add('success');
         if (statusText) statusText.innerText = "Başarılı!";
 
-        // 3 saniye sonra kullanıcıya yeni tarama şansı tanı
+        // 3 saniye sonra sistemi yeni tarama için sıfırla
         setTimeout(() => {
             scanStatusDiv.classList.remove('success');
             resultCard.classList.add('hidden');
@@ -92,7 +46,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 3000);
     }
 
-    // Büyük Yuvarlak Buton Kontrolü
+    // 2. Kamerayı Güvenli Başlatma Döngüsü
+    async function startCamera() {
+        if (statusText) statusText.innerText = "Kamera açılıyor...";
+
+        // iOS Arka Kamera İçin En Katı Kural (Exact environment)
+        const primaryConstraints = {
+            video: { facingMode: { exact: "environment" } },
+            audio: false
+        };
+
+        try {
+            await codeReader.decodeFromConstraints(primaryConstraints, 'cameraFeed', (result, err) => {
+                if (result && isScanning) handleResult(result);
+            });
+            setUItoScanning();
+        } catch (error) {
+            console.log("Katı kamera kuralı başarısız, esnek moda geçiliyor...", error);
+            
+            // YEDEK PLAN (Fallback): Üstteki kural hata verirse cihazın bulabildiği ilk kamerayı açar
+            try {
+                const fallbackConstraints = { video: { facingMode: "environment" } };
+                await codeReader.decodeFromConstraints(fallbackConstraints, 'cameraFeed', (result, err) => {
+                    if (result && isScanning) handleResult(result);
+                });
+                setUItoScanning();
+            } catch (finalError) {
+                console.error("Kamera tamamen başarısız:", finalError);
+                if (statusText) statusText.innerText = "Kamera İzni Gerekli!";
+            }
+        }
+    }
+
+    function setUItoScanning() {
+        mainScanBtn.classList.add('active');
+        document.getElementById('scanBtnLabel').innerText = "Taramayı Durdur";
+        scanStatusDiv.classList.remove('idle');
+        if (statusText) statusText.innerText = "Taranıyor...";
+    }
+
+    // Buton Aç / Kapat Fonksiyonu
     mainScanBtn.addEventListener('click', () => {
         if (mainScanBtn.classList.contains('active')) {
             isScanning = false;
