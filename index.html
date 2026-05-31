@@ -384,5 +384,27 @@
 <script src="export.js"></script>
 <script src="scanner.js"></script>
 <script src="app.js"></script>
+<script>
+  // Sayfa yüklendiğinde çalışacak fonksiyon
+  window.addEventListener('load', () => {
+    // Animasyonun görünmesi için kısa bir gecikme ekliyoruz (örn: 1.8 saniye)
+    setTimeout(() => {
+      const splash = document.getElementById('splash');
+      const app = document.getElementById('app');
+
+      // 1. Splash ekranına CSS'te tanımladığınız 'fade-out' sınıfını ekleyerek kaybolmasını sağla
+      splash.classList.add('fade-out');
+
+      // 2. Ana uygulamanın üzerindeki 'hidden' sınıfını kaldırarak görünür yap
+      app.classList.remove('hidden');
+      
+      // İsteğe bağlı: Fade-out animasyonu bittikten sonra splash elementini tamamen DOM'dan gizle
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 400); // CSS'teki transition süreniz 0.4s olduğu için
+      
+    }, 1800); // 1800 ms = 1.8 saniye
+  });
+</script>  
 </body>
 </html>
