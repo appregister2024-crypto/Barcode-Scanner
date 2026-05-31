@@ -1,16 +1,22 @@
-// app.js - Arayüz ve UI Fonksiyonları
+// app.js
 document.addEventListener('DOMContentLoaded', () => {
-    // ---- Sekme (Tab) Geçişleri ----
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabPanels = document.querySelectorAll('.tab-panel');
+    // 1. DİL BAŞLATMA (data-tr niteliklerini elementlerin içine yazar)
+    function initLanguage() {
+        document.querySelectorAll('[data-tr]').forEach(el => {
+            el.innerText = el.getAttribute('data-tr');
+        });
+    }
+    initLanguage();
+
+    // 2. SEKME GEÇİŞLERİ
+    const tabBtns = document.querySelectorAll('.tab-nav .tab-btn');
+    const tabPanels = document.querySelectorAll('.main-content .tab-panel');
 
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Aktif buton stilini değiştir
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            // İlgili paneli göster
             const targetTab = btn.getAttribute('data-tab');
             tabPanels.forEach(panel => {
                 if (panel.id === `tab-${targetTab}`) {
@@ -22,42 +28,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ---- Ayarlar Modalı ----
+    // 3. AYARLAR MODAL KONTROLÜ
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
     const closeSettings = document.getElementById('closeSettings');
 
-    settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
-    
-    closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
-    
-    // Modal dışına tıklayınca kapatma
-    settingsModal.addEventListener('click', (e) => {
-        if (e.target === settingsModal) {
-            settingsModal.classList.add('hidden');
-        }
-    });
+    if (settingsBtn && settingsModal && closeSettings) {
+        settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+        closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) settingsModal.classList.add('hidden');
+        });
+    }
 
-    // ---- Sonuç Kartı Butonları ----
+    // 4. KOPYALAMA FONKSİYONU
     const copyResultBtn = document.getElementById('copyResultBtn');
     const resultContent = document.getElementById('resultContent');
     const toast = document.getElementById('toast');
     const toastText = document.getElementById('toastText');
 
-    function showToast(message) {
-        toastText.innerText = message;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2500);
+    if (copyResultBtn && resultContent && toast) {
+        copyResultBtn.addEventListener('click', () => {
+            const text = resultContent.innerText;
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    if (toastText) toastText.innerText = "Kopyalandı!";
+                    toast.classList.remove('hidden');
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2000);
+                });
+            }
+        });
     }
-
-    copyResultBtn.addEventListener('click', () => {
-        const text = resultContent.innerText;
-        if (text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Kopyalandı!');
-            }).catch(err => {
-                console.error('Kopyalama başarısız:', err);
-            });
-        }
-    });
 });
