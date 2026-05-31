@@ -1,10 +1,6 @@
-// scanner.js - iOS Safari İçin Canvas Destekli Kesin Çözüm
-document.addEventListener('DOMContentLoaded', () => {
+// scanner.js - Cihazın Kendi Native Tarayıcısını Kullanan Kararlı Sürüm
+document.addEventListener('DOMContentLoaded', async () => {
     const video = document.getElementById('cameraFeed');
-    const canvas = document.getElementById('scanCanvas');
-    const context = canvas.getContext('2d', { willReadFrequently: true });
-    
-    // UI Elementleri
     const resultCard = document.getElementById('resultCard');
     const resultContent = document.getElementById('resultContent');
     const resultTypeBadge = document.getElementById('resultTypeBadge');
@@ -12,123 +8,104 @@ document.addEventListener('DOMContentLoaded', () => {
     const scanStatusDiv = document.getElementById('scanStatus');
     const mainScanBtn = document.getElementById('mainScanBtn');
 
-    // Okuma Ayarları (Try Harder modu aktif)
-    const hints = new Map();
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.QR_CODE,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39
-    ]);
+    // 1. Tarayıcının Native Barkod Motorunu Destekleyip Desteklemediğini Kontrol Et
+    if (!('BarcodeDetector' in window)) {
+        alert("Tarayıcınız güncel native Barkod API'sini desteklemiyor. Lütfen güncel Safari veya Chrome kullanın.");
+        if (statusText) statusText.innerText = "Desteklenmeyen Tarayıcı";
+        return;
+    }
 
-    const codeReader = new ZXing.BrowserMultiFormatReader(hints);
-    let isScanning = false;
-    let scanTimer = null;
+    // Okunmasını istediğimiz formatları sisteme kaydediyoruz
+    const barcodeDetector = new BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'qr_code', 'code_128', 'code_39']
+    });
 
-    // 1. Kamerayı Yüksek Çözünürlükle Başlat
+    let isScanning = true;
+    let animationFrameId = null;
+
+    // 2. Kamerayı Standart Standartlarda Başlat
     async function startCamera() {
-        const constraints = {
-            video: {
-                facingMode: 'environment',
-                width: { ideal: 1920 }, // İnce çizgileri yakalamak için Full HD istiyoruz
-                height: { ideal: 1080 }
-            },
-            audio: false
-        };
-
         try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
             video.srcObject = stream;
-            video.setAttribute('playsinline', true); // iOS Safari için kritik
-            video.muted = true;
+            video.setAttribute('playsinline', true);
             await video.play();
-
-            startScanningLoop();
+            
+            if (statusText) statusText.innerText = "Taranıyor...";
+            startScanLoop();
         } catch (err) {
-            console.error("Kamera açma hatası:", err);
-            if (statusText) statusText.innerText = "Kamera İzni Gerekli!";
+            console.error("Kamera izni veya başlatma hatası:", err);
+            if (statusText) statusText.innerText = "Kamera Hatası!";
         }
     }
 
-    // 2. iOS'un Çözünürlüğü Düşürmesini Engelleyen Manuel Canvas Döngüsü
-    function startScanningLoop() {
-        isScanning = true;
-        mainScanBtn.classList.add('active');
-        document.getElementById('scanBtnLabel').innerText = "Taramayı Durdur";
-        scanStatusDiv.classList.remove('idle');
-        if (statusText) statusText.innerText = "Taranıyor...";
-
-        // Saniyede 4 kez (her 250ms) videodan HD kare yakala
-        scanTimer = setInterval(async () => {
-            if (!isScanning) return;
+    // 3. İşlemciyi Yormayan, Doğrudan Donanımı Kullanan Akıcı Tarama Döngüsü
+    function startScanLoop() {
+        async function checkFrame() {
+            if (!isScanning) {
+                animationFrameId = requestAnimationFrame(checkFrame);
+                return;
+            }
 
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                // Gizli canvas boyutunu kameranın gerçek çözünürlüğüne eşitle
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                
-                // O anki video karesini canvas'a çiz (Bulanıklık önlenir)
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
                 try {
-                    // Kütüphaneye doğrudan bu saf ve net görüntüyü besle
-                    const result = await codeReader.decodeFromCanvas(canvas);
-                    if (result && isScanning) {
-                        handleSuccess(result);
+                    // Apple'ın kendi işletim sistemi arkada görüntüyü analiz eder
+                    const barcodes = await barcodeDetector.detect(video);
+                    if (barcodes.length > 0) {
+                        handleSuccess(barcodes[0]); // İlk bulduğu barkodu işle
                     }
-                } catch (e) {
-                    // Kod bulunamadığında ZXing hata fırlatır, döngünün sürmesi için bunu boş geçiyoruz
+                } catch (err) {
+                    console.error("Tarama hatası:", err);
                 }
             }
-        }, 250); 
+            animationFrameId = requestAnimationFrame(checkFrame);
+        }
+        animationFrameId = requestAnimationFrame(checkFrame);
     }
 
-    // 3. Başarılı Okuma Durumu
-    function handleSuccess(result) {
-        isScanning = false; // Yeni okumaları geçici olarak kilitle
+    // 4. Başarılı Sonuç Yönetimi
+    function handleSuccess(barcode) {
+        isScanning = false; // Üst üste binlerce kez okumaması için kilitle
         
         if (navigator.vibrate) navigator.vibrate(150);
 
-        // Sonuçları ekrana bas
-        resultTypeBadge.innerText = result.barcodeFormat.replace(/_/g, ' ');
-        resultContent.innerText = result.text;
+        // Sonuçları şık arayüz kartına yerleştir
+        resultTypeBadge.innerText = barcode.format.toUpperCase().replace('_', ' ');
+        resultContent.innerText = barcode.rawValue;
         resultCard.classList.remove('hidden');
 
         scanStatusDiv.classList.remove('idle');
         scanStatusDiv.classList.add('success');
         if (statusText) statusText.innerText = "Başarılı!";
 
-        // 3 saniye sonra taramayı otomatik olarak yeniden aktif et
+        // 3 saniye sonra kullanıcıya yeni tarama şansı tanı
         setTimeout(() => {
             scanStatusDiv.classList.remove('success');
             resultCard.classList.add('hidden');
-            
             if (mainScanBtn.classList.contains('active')) {
                 isScanning = true;
                 if (statusText) statusText.innerText = "Taranıyor...";
-            } else {
-                if (statusText) statusText.innerText = "Beklemede";
             }
         }, 3000);
     }
 
-    function stopScanningMode() {
-        isScanning = false;
-        if (scanTimer) clearInterval(scanTimer);
-        mainScanBtn.classList.remove('active');
-        document.getElementById('scanBtnLabel').innerText = "Taramayı Başlat";
-        scanStatusDiv.classList.add('idle');
-        if (statusText) statusText.innerText = "Beklemede";
-    }
-
-    // Buton Kontrolü
+    // Büyük Yuvarlak Buton Kontrolü
     mainScanBtn.addEventListener('click', () => {
         if (mainScanBtn.classList.contains('active')) {
-            stopScanningMode();
+            isScanning = false;
+            mainScanBtn.classList.remove('active');
+            document.getElementById('scanBtnLabel').innerText = "Taramayı Başlat";
+            scanStatusDiv.classList.add('idle');
+            if (statusText) statusText.innerText = "Beklemede";
         } else {
-            startScanningLoop();
+            isScanning = true;
+            mainScanBtn.classList.add('active');
+            document.getElementById('scanBtnLabel').innerText = "Taramayı Durdur";
+            scanStatusDiv.classList.remove('idle');
+            if (statusText) statusText.innerText = "Taranıyor...";
             resultCard.classList.add('hidden');
         }
     });
