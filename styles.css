@@ -208,7 +208,7 @@ input, select { font-family: var(--font-display); }
 .scanner-viewport {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 16 / 9; /* Kare yerine kameranın doğal 16:9 formatını korur */
   max-height: 52vh;
   background: #000;
   overflow: hidden;
@@ -670,4 +670,4 @@ body::before {
     radial-gradient(ellipse 60% 40% at 20% 80%, rgba(108,99,255,0.06) 0%, transparent 70%),
     radial-gradient(ellipse 50% 50% at 80% 20%, rgba(167,139,250,0.04) 0%, transparent 70%);
   pointer-events: none;
-}
+}	
