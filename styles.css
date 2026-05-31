@@ -208,17 +208,19 @@ input, select { font-family: var(--font-display); }
 .scanner-viewport {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9; /* Kare yerine kameranın doğal 16:9 formatını korur */
-  max-height: 52vh;
+  aspect-ratio: 16 / 9; /* Kareyi iptal ettik, kameranın doğal dikdörtgen oranına eşitledik */
+  max-height: 50vh;
   background: #000;
   overflow: hidden;
   flex-shrink: 0;
 }
-#cameraFeed {
-  width: 100%; height: 100%;
-  object-fit: cover; display: block;
-}
 
+#cameraFeed {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Cover yerine contain yaptık; böylece yazılım ne görüyorsa sen de ekranda BİREBİR aynısını göreceksin */
+  display: block;
+}
 /* Scan Frame */
 .scan-frame {
   position: absolute; inset: 0;
