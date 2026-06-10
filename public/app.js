@@ -58,8 +58,8 @@ async function fetchTransactions() {
     } catch (error) {
         console.error("Veriler sunucudan alınamadı:", error);
         warningMessage.classList.remove('hidden');
-        warningMessage.className = "mb-3 py-1.5 px-3 rounded text-xs font-bold text-center bg-red-600 text-white animate-pulse";
-        warningMessage.innerText = "⚠️ BAĞLANTI HATASI: Sunucuya ulaşılamıyor! Lütfen terminalde sunucunun açık olduğunu doğrulayın.";
+        warningMessage.className = "mb-3 py-1.5 px-3 rounded text-xs font-bold text-center bg-red-600 text-white";
+        warningMessage.innerText = "⚠️ BAĞLANTI HATASI: Veriler güncellenemiyor.";
     }
 }
 
@@ -146,7 +146,7 @@ function editTransaction(id) {
     submitBtn.classList.replace('bg-indigo-600', 'bg-green-600');
     submitBtn.classList.replace('hover:bg-indigo-700', 'hover:bg-green-700');
     cancelBtn.classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Düzenleye basınca yukarı yumuşak kaydır
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
 }
 
 cancelBtn.addEventListener('click', () => {
@@ -181,7 +181,7 @@ function updateUI() {
     let expense = 0;
 
     if (transactions.length === 0) {
-        transactionList.innerHTML = `<tr class="block md:table-row"><td colspan="6" class="block md:table-cell py-8 text-center text-gray-400 font-medium bg-gray-50 md:bg-transparent rounded-lg border md:border-none">Henüz hiçbir gelir veya gider kaydı bulunmuyor.</td></tr>`;
+        transactionList.innerHTML = `<div class="py-8 text-center text-gray-400 font-medium bg-gray-50 rounded-lg border border-dashed border-gray-300">Henüz hiçbir gelir veya gider kaydı bulunmuyor.</div>`;
     } else {
         transactions.sort((a, b) => {
             const getTypeWeight = (t) => {
@@ -208,9 +208,9 @@ function updateUI() {
             else if (t.type === 'gelir' && t.incomeType === 'aylik') monthlyIncome += t.amount;
             else if (t.type === 'gider') expense += t.amount;
 
-            const tr = document.createElement('tr');
-            // 📱 MOBİLDE KART (BLOCK DÜZENİ), PC'DE KILASİK SATIR (TABLE-ROW)
-            tr.className = "border md:border-b border-gray-200 md:border-gray-100 hover:bg-gray-50 transition-colors block md:table-row p-3 mb-3 md:mb-0 rounded-lg bg-gray-50 md:bg-transparent shadow-sm md:shadow-none";
+            const rowDiv = document.createElement('div');
+            // 📊 SİHİRLİ HİZALAMA: Mobilde dikey kart, Masaüstünde 12 parçalı kusursuz grid satırı
+            rowDiv.className = "border md:border-b border-gray-200 md:border-gray-100 hover:bg-gray-50/80 transition-colors grid grid-cols-1 md:grid-cols-12 gap-2 items-center p-3 md:p-2 mb-3 md:mb-0 rounded-lg md:rounded-none bg-gray-50 md:bg-transparent shadow-sm md:shadow-none";
             
             let zamanlamaMetni = t.isRecurring ? `Her Ayın ${t.recurringDay}. Günü` : 'Tek Seferlik';
             let turMetni = t.type === 'gelir' ? (t.incomeType === 'birikim' ? 'BİRİKİM' : 'GELİR') : 'GİDER';
@@ -221,49 +221,39 @@ function updateUI() {
             let nitelik = t.fixVarType === 'degisken' ? 'DEĞİŞKEN' : 'SABİT';
             let nitelikRengi = t.fixVarType === 'degisken' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-gray-100 text-gray-600 border-gray-200';
 
-            tr.innerHTML = `
-                <td class="block md:table-cell py-1 md:py-1.5 px-0 md:px-2 text-gray-500 whitespace-nowrap">
-                    <div class="flex items-center justify-between md:block">
-                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Zamanlama / Tür:</span>
-                        <div class="flex items-center gap-1.5">
-                            <span class="font-medium text-gray-700 md:font-normal md:text-gray-500">${zamanlamaMetni}</span>
-                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${turRengi}">${turMetni}</span>
-                        </div>
+            rowDiv.innerHTML = `
+                <div class="md:col-span-2 flex items-center justify-between md:block">
+                    <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Zamanlama / Tür:</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-medium text-gray-700 md:font-normal md:text-gray-500">${zamanlamaMetni}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${turRengi}">${turMetni}</span>
                     </div>
-                </td>
+                </div>
                 
-                <td class="block md:table-cell py-1 md:py-1.5 px-0 md:px-2 mt-1 md:mt-0">
-                    <div class="flex items-center justify-between md:block">
-                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Kategori:</span>
-                        <div class="flex items-center gap-1.5">
-                            <span class="inline-block w-14 text-center px-1 border rounded text-[8px] font-bold ${nitelikRengi} shrink-0">${nitelik}</span>
-                            <span class="font-bold md:font-medium text-gray-800 md:text-inherit">${t.category}</span>
-                        </div>
+                <div class="md:col-span-3 flex items-center justify-between md:block">
+                    <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Kategori:</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-14 text-center px-1 border rounded text-[8px] font-bold ${nitelikRengi} shrink-0">${nitelik}</span>
+                        <span class="font-bold md:font-medium text-gray-800 md:text-inherit">${t.category}</span>
                     </div>
-                </td>
+                </div>
                 
-                <td class="block md:table-cell py-1 md:py-1.5 px-0 md:px-8 text-gray-600">
-                    <div class="flex items-center justify-between md:block">
-                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Açıklama:</span>
-                        <span class="text-right md:text-left">${aciklamaMetni}</span>
-                    </div>
-                </td>
+                <div class="md:col-span-4 flex items-center justify-between md:block text-gray-600 md:pl-4">
+                    <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Açıklama:</span>
+                    <span class="text-right md:text-left">${aciklamaMetni}</span>
+                </div>
                 
-                <td class="block md:table-cell py-1.5 md:py-1.5 px-0 md:px-2 font-bold ${tutarRengi} text-right whitespace-nowrap border-t md:border-t-0 border-gray-200/60 mt-1 md:mt-0 pt-1.5 md:pt-1.5">
-                    <div class="flex items-center justify-between md:block w-full">
-                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Tutar:</span>
-                        <span class="text-sm md:text-xs font-black md:font-bold">${t.type === 'gelir' ? '+' : '-'} ₺${formatTL(t.amount)}</span>
-                    </div>
-                </td>
+                <div class="md:col-span-2 flex items-center justify-between md:block font-bold ${tutarRengi} md:text-right border-t md:border-t-0 border-gray-200/60 mt-1 md:mt-0 pt-1.5 md:pt-0">
+                    <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Tutar:</span>
+                    <span class="text-sm md:text-xs font-black md:font-bold">${t.type === 'gelir' ? '+' : '-'} ₺${formatTL(t.amount)}</span>
+                </div>
                 
-                <td class="block md:table-cell py-2 md:py-1.5 px-0 md:px-2 text-center whitespace-nowrap">
-                    <div class="flex items-center justify-end md:justify-center gap-2 w-full">
-                        <button onclick="editTransaction(${t.id})" class="text-blue-600 font-bold md:font-normal text-xs md:text-inherit bg-blue-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-blue-200 md:border-none shadow-sm md:shadow-none">Düzenle</button>
-                        <button onclick="deleteTransaction(${t.id})" class="text-red-500 font-bold md:font-normal text-xs md:text-inherit bg-red-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-red-200 md:border-none shadow-sm md:shadow-none">Sil</button>
-                    </div>
-                </td>
+                <div class="md:col-span-1 flex items-center justify-end md:justify-center gap-2 mt-1 md:mt-0">
+                    <button onclick="editTransaction(${t.id})" class="text-blue-600 font-bold md:font-normal text-xs md:text-inherit bg-blue-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-blue-200 md:border-none shadow-sm md:shadow-none">Düzenle</button>
+                    <button onclick="deleteTransaction(${t.id})" class="text-red-500 font-bold md:font-normal text-xs md:text-inherit bg-red-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-red-200 md:border-none shadow-sm md:shadow-none">Sil</button>
+                </div>
             `;
-            transactionList.appendChild(tr);
+            transactionList.appendChild(rowDiv);
         });
     }
 
