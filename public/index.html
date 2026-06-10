@@ -76,27 +76,22 @@
                 </form>
             </div>
 
-            <div class="overflow-x-auto md:overflow-visible">
-                <table class="w-full text-left border-collapse text-xs block md:table">
-                    <thead class="hidden md:table-header-group">
-                        <tr class="bg-gray-100 border-b">
-                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-28 whitespace-nowrap">Zamanlama</th>
-                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-20">Tür</th>
-                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-56">Kategori</th>
-                            <th class="py-1.5 px-8 font-semibold text-gray-600">Açıklama</th> 
-                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-32 text-right">Tutar</th>
-                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-20 text-center">İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transaction-list" class="block md:table-row-group"></tbody>
-                </table>
+            <div class="hidden md:grid grid-cols-12 gap-2 bg-gray-100 p-2 text-xs font-semibold text-gray-600 border-b rounded-t-lg">
+                <div class="col-span-2">Zamanlama / Tür</div>
+                <div class="col-span-3">Kategori</div>
+                <div class="col-span-4 pl-4">Açıklama</div>
+                <div class="col-span-2 text-right">Tutar</div>
+                <div class="col-span-1 text-center">İşlem</div>
             </div>
+
+            <div id="transaction-list" class="space-y-3 md:space-y-0 text-xs">
+                </div>
 
         </div>
     </div>
 
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3 overflow-hidden pointer-events-none"></div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=2"></script>
 </body>
 </html>
