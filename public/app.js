@@ -209,7 +209,7 @@ function updateUI() {
             else if (t.type === 'gider') expense += t.amount;
 
             const rowDiv = document.createElement('div');
-            // 💻 PC'DE MILIMETRIK UYUM: md:grid-cols-12 ve md:px-4 ile üst başlık alanıyla birebir eşitlendi
+            // 💻 MASAÜSTÜ GRID PAYLAŞIMI: Başlıklarla tam uyumlu (2 + 1 + 2 + 4 + 2 + 1 = 12 kolon)
             rowDiv.className = "border md:border-b border-gray-200 md:border-gray-100 hover:bg-gray-50/80 transition-colors grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center p-3 md:py-2 md:px-4 mb-3 md:mb-0 rounded-lg md:rounded-none bg-gray-50 md:bg-transparent shadow-sm md:shadow-none";
             
             let zamanlamaMetni = t.isRecurring ? `Her Ayın ${t.recurringDay}. Günü` : 'Tek Seferlik';
@@ -222,15 +222,17 @@ function updateUI() {
             let nitelikRengi = t.fixVarType === 'degisken' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-gray-100 text-gray-600 border-gray-200';
 
             rowDiv.innerHTML = `
-                <div class="md:col-span-3 flex items-center justify-between md:block">
-                    <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Zamanlama / Tür:</span>
-                    <div class="flex items-center gap-1.5">
-                        <span class="font-medium text-gray-700 md:font-normal md:text-gray-500">${zamanlamaMetni}</span>
-                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${turRengi}">${turMetni}</span>
-                    </div>
+                <div class="md:col-span-2 flex items-center justify-between md:block">
+                    <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Zamanlama:</span>
+                    <span class="font-medium text-gray-700 md:font-normal md:text-gray-500">${zamanlamaMetni}</span>
+                </div>
+
+                <div class="md:col-span-1 flex items-center justify-between md:block mt-0.5 md:mt-0">
+                    <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Tür:</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${turRengi}">${turMetni}</span>
                 </div>
                 
-                <div class="md:col-span-2 flex items-center justify-between md:block">
+                <div class="md:col-span-2 flex items-center justify-between md:block mt-0.5 md:mt-0">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Kategori:</span>
                     <div class="flex items-center gap-1.5">
                         <span class="inline-block w-14 text-center px-1 border rounded text-[8px] font-bold ${nitelikRengi} shrink-0">${nitelik}</span>
@@ -238,7 +240,7 @@ function updateUI() {
                     </div>
                 </div>
                 
-                <div class="md:col-span-4 flex items-center justify-between md:block text-gray-600">
+                <div class="md:col-span-4 flex items-center justify-between md:block text-gray-600 mt-0.5 md:mt-0">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Açıklama:</span>
                     <span class="text-right md:text-left">${aciklamaMetni}</span>
                 </div>
