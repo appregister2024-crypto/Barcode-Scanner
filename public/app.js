@@ -23,10 +23,21 @@ const closeReportBtn = document.getElementById('close-report-btn');
 const chartEmptyMessage = document.getElementById('chart-empty-message');
 const chartCanvas = document.getElementById('expensePieChart');
 
+// Filtre Butonları DOM
+const tabGider = document.getElementById('report-tab-gider');
+const tabGelir = document.getElementById('report-tab-gelir');
+const subTabKategori = document.getElementById('sub-tab-kategori');
+const subTabNitelik = document.getElementById('sub-tab-nitelik');
+const subTabZamanlama = document.getElementById('sub-tab-zamanlama');
+
 let transactions = []; 
 let editId = null; 
 let duesChecked = false; 
-let myPieChart = null; // Eski grafik kalıntılarını silmek için kilit hafıza
+let myPieChart = null; 
+
+// Aktif Rapor Durum Hafızası (Default: Giderlerin Kategori Dağılımı)
+let activeReportType = 'gider'; 
+let activeReportClass = 'kategori'; 
 
 function parseAmount(value) {
     if (!value) return 0;
@@ -293,12 +304,12 @@ function updateUI() {
     }
 }
 
-// 📊 SİHİRLİ RAPOR MOTORU: Giderleri toplayıp pasta grafiğine basar
+// 📊 DİNAMİK ÇOK KATMANLI GRAFİK MOTORU (Gelir / Gider ve 3 Farklı Sınıflandırma Tutar)
 function initAndRenderChart() {
-    // 1. Sadece giderleri filtrele
-    const expenses = transactions.filter(t => t.type === 'gider');
+    // 1. Kademe Filtre: Gelir mi Gider mi?
+    const filteredList = transactions.filter(t => t.type === activeReportType);
     
-    if (expenses.length === 0) {
+    if (filteredList.length === 0) {
         chartEmptyMessage.classList.remove('hidden');
         chartCanvas.classList.add('hidden');
         return;
@@ -307,33 +318,50 @@ function initAndRenderChart() {
     chartEmptyMessage.classList.add('hidden');
     chartCanvas.classList.remove('hidden');
 
-    // 2. Kategorilere göre harcamaları grupla ve topla
-    const categoryTotals = {};
-    expenses.forEach(t => {
-        const cat = t.category.trim();
-        categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount;
+    // 2. Kademe Filtre: Sınıflandırma Düzeni (Kategori / Nitelik / Zamanlama)
+    const aggregatedTotals = {};
+    
+    filteredList.forEach(t => {
+        let key = "";
+        if (activeReportClass === 'kategori') {
+            key = t.category.trim();
+        } else if (activeReportClass === 'nitelik') {
+            key = (t.fixVarType === 'degisken') ? 'Değişken' : 'Sabit';
+        } else if (activeReportClass === 'zamanlama') {
+            key = t.isRecurring ? 'Aylık Düzenli' : 'Tek Seferlik';
+        }
+        aggregatedTotals[key] = (aggregatedTotals[key] || 0) + t.amount;
     });
 
-    const labels = Object.keys(categoryTotals);
-    const data = Object.values(categoryTotals);
+    const labels = Object.keys(aggregatedTotals);
+    const data = Object.values(aggregatedTotals);
 
-    // 3. Pasta dilimleri için şık ve sabit bütçe renk tonları (Eğer yetmezse rastgele ton üretir)
-    const presetColors = ['#4F46E5', '#EF4444', '#F59E0B', '#10B981', '#06B6D4', '#EC4899', '#8B5CF6', '#F97316'];
-    const backgroundColors = labels.map((_, index) => presetColors[index % presetColors.length]);
+    // Dilimler için profesyonel renk paletleri
+    let chartColors = [];
+    if (activeReportClass === 'kategori') {
+        const colors = ['#4F46E5', '#EF4444', '#F59E0B', '#10B981', '#06B6D4', '#EC4899', '#8B5CF6', '#F97316'];
+        chartColors = labels.map((_, i) => colors[i % colors.length]);
+    } else if (activeReportClass === 'nitelik') {
+        // Sabit/Değişken Renkleri (Mor ve Turuncu tonları)
+        chartColors = labels.map(l => l === 'Sabit' ? '#6366F1' : '#A855F7');
+    } else if (activeReportClass === 'zamanlama') {
+        // Düzenli/Tek Seferlik (Turkuaz ve Mavi tonları)
+        chartColors = labels.map(l => l === 'Aylık Düzenli' ? '#0EA5E9' : '#3B82F6');
+    }
 
-    // 4. Mükerrer grafik binmelerini önlemek için eskisini yok et
+    // Grafik çakışmalarını önlemek için hafızayı boşalt
     if (myPieChart) {
         myPieChart.destroy();
     }
 
-    // 5. Sıfırdan Chart.js Grafik Kurulumu
+    // Chart.js Çizim Aşaması
     myPieChart = new Chart(chartCanvas, {
         type: 'pie',
         data: {
             labels: labels,
             datasets: [{
                 data: data,
-                backgroundColor: backgroundColors,
+                backgroundColor: chartColors,
                 borderWidth: 2,
                 borderColor: '#ffffff'
             }]
@@ -345,16 +373,15 @@ function initAndRenderChart() {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        boxWidth: 12,
-                        padding: 10,
+                        boxWidth: 10,
+                        padding: 12,
                         font: { size: 10, weight: 'bold' }
                     }
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            const value = context.raw;
-                            return ` ₺${formatTL(value)}`;
+                            return ` ₺${formatTL(context.raw)}`;
                         }
                     }
                 }
@@ -363,7 +390,56 @@ function initAndRenderChart() {
     });
 }
 
-// 👁️ Modal Kontrol Etkinlikleri
+// 🎛️ SEKME GEÇİŞ MOTORU VE KLAS YÖNETİMİ
+function resetMainTabs() {
+    tabGider.className = "flex-1 py-2 text-center text-gray-400 border-b-2 border-transparent hover:text-gray-600 transition-all";
+    tabGelir.className = "flex-1 py-2 text-center text-gray-400 border-b-2 border-transparent hover:text-gray-600 transition-all";
+}
+
+function resetSubTabs() {
+    subTabKategori.className = "flex-1 py-1 rounded hover:bg-white/50 hover:text-gray-700 transition-all";
+    subTabNitelik.className = "flex-1 py-1 rounded hover:bg-white/50 hover:text-gray-700 transition-all";
+    subTabZamanlama.className = "flex-1 py-1 rounded hover:bg-white/50 hover:text-gray-700 transition-all";
+}
+
+// Ana Sekme Tıklama Olayları
+tabGider.addEventListener('click', () => {
+    activeReportType = 'gider';
+    resetMainTabs();
+    tabGider.className = "flex-1 py-2 text-center border-b-2 border-indigo-600 text-indigo-600 transition-all";
+    initAndRenderChart();
+});
+
+tabGelir.addEventListener('click', () => {
+    activeReportType = 'gelir';
+    resetMainTabs();
+    tabGelir.className = "flex-1 py-2 text-center border-b-2 border-indigo-600 text-indigo-600 transition-all";
+    initAndRenderChart();
+});
+
+// Sınıflandırma Alt Sekme Olayları
+subTabKategori.addEventListener('click', () => {
+    activeReportClass = 'kategori';
+    resetSubTabs();
+    subTabKategori.className = "flex-1 py-1 rounded bg-white text-gray-800 shadow-sm transition-all";
+    initAndRenderChart();
+});
+
+subTabNitelik.addEventListener('click', () => {
+    activeReportClass = 'nitelik';
+    resetSubTabs();
+    subTabNitelik.className = "flex-1 py-1 rounded bg-white text-gray-800 shadow-sm transition-all";
+    initAndRenderChart();
+});
+
+subTabZamanlama.addEventListener('click', () => {
+    activeReportClass = 'zamanlama';
+    resetSubTabs();
+    subTabZamanlama.className = "flex-1 py-1 rounded bg-white text-gray-800 shadow-sm transition-all";
+    initAndRenderChart();
+});
+
+// Modal Pencere Aç/Kapat Dinamikleri
 openReportBtn.addEventListener('click', () => {
     reportModal.classList.remove('hidden');
     reportModal.classList.add('flex');
@@ -371,7 +447,7 @@ openReportBtn.addEventListener('click', () => {
         reportModal.querySelector('.bg-white').classList.remove('scale-95');
         reportModal.querySelector('.bg-white').classList.add('scale-100');
     }, 10);
-    initAndRenderChart(); // Açıldığı an güncel listeyi tara ve çiz
+    initAndRenderChart(); 
 });
 
 function closeReportModal() {
@@ -384,7 +460,6 @@ function closeReportModal() {
 }
 
 closeReportBtn.addEventListener('click', closeReportModal);
-// Dışarı tıklayınca kapansın
 reportModal.addEventListener('click', (e) => {
     if (e.target === reportModal) closeReportModal();
 });
