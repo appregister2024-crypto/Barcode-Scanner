@@ -4,24 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cüzdanım - Gelir & Gider Takibi</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-2 md:p-4 font-sans text-sm">
 
     <div class="w-full bg-white rounded shadow-md overflow-hidden">
         
-        <div class="bg-indigo-600 p-2 md:p-3 text-white flex justify-between items-center">
+        <div class="bg-indigo-600 p-3 text-white flex justify-between items-center">
             <h1 class="text-base font-bold">💰 Cüzdanım</h1>
         </div>
 
-        <div class="p-3 md:p-4">
+        <div class="p-2 md:p-4">
             <div id="warning-message" class="hidden mb-3 py-1.5 px-3 rounded text-xs font-bold text-center"></div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
                 <div class="p-2 rounded bg-blue-50 border border-blue-200">
                     <h2 class="text-gray-600 text-[10px] font-bold uppercase">Toplam Birikim</h2>
-                    <p id="total-savings" class="text-base font-bold text-blue-600">Explicitly ₺ 0,00</p>
+                    <p id="total-savings" class="text-base font-bold text-blue-600">₺ 0,00</p>
                 </div>
                 <div class="p-2 rounded bg-green-50 border border-green-200">
                     <h2 class="text-gray-600 text-[10px] font-bold uppercase">Aylık Gelir</h2>
@@ -37,48 +37,48 @@
                 </div>
             </div>
 
-            <div class="bg-gray-50 p-2 md:p-3 rounded border mb-4">
-                <form id="transaction-form" class="flex flex-wrap items-center gap-2">
-                    <select id="type" class="p-1.5 text-xs border rounded bg-white" required>
+            <div class="bg-gray-50 p-3 rounded border mb-4">
+                <form id="transaction-form" class="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2">
+                    <select id="type" class="p-2 md:p-1.5 text-xs border rounded bg-white w-full md:w-auto" required>
                         <option value="gelir">Gelir</option>
                         <option value="gider">Gider</option>
                     </select>
                     
-                    <select id="income-type" class="p-1.5 text-xs border rounded bg-white">
+                    <select id="income-type" class="p-2 md:p-1.5 text-xs border rounded bg-white w-full md:w-auto">
                         <option value="aylik">Aylık/Düzenli</option>
                         <option value="birikim">Birikim</option>
                     </select>
 
-                    <input type="text" id="amount" inputmode="decimal" placeholder="Tutar (Örn: 1500)" class="p-1.5 text-xs border rounded w-24 bg-white" required>
-                    <input type="text" id="category" placeholder="Kategori" class="p-1.5 text-xs border rounded w-24 bg-white" required>
+                    <input type="text" id="amount" inputmode="decimal" placeholder="Tutar (Örn: 1500)" class="p-2 md:p-1.5 text-xs border rounded bg-white w-full md:w-24" required>
+                    <input type="text" id="category" placeholder="Kategori" class="p-2 md:p-1.5 text-xs border rounded bg-white w-full md:w-24" required>
                     
-                    <select id="fix-var-type" class="p-1.5 text-xs border rounded bg-white" required>
+                    <select id="fix-var-type" class="p-2 md:p-1.5 text-xs border rounded bg-white w-full md:w-auto" required>
                         <option value="sabit">Sabit</option>
                         <option value="degisken">Değişken</option>
                     </select>
 
-                    <select id="recurring" class="p-1.5 text-xs border rounded bg-white" required>
+                    <select id="recurring" class="p-2 md:p-1.5 text-xs border rounded bg-white w-full md:w-auto" required>
                         <option value="tek">Tek Seferlik</option>
                         <option value="duzenli">Her Ay</option>
                     </select>
 
-                    <div id="recurring-day-container" class="hidden items-center gap-1">
-                        <span class="text-[10px] text-gray-500">Ayın:</span>
-                        <input type="text" id="recurring-day" placeholder="Gün" class="p-1.5 text-xs border rounded w-12 bg-white">
+                    <div id="recurring-day-container" class="hidden items-center gap-1 col-span-2 md:col-span-1 bg-white md:bg-transparent p-1 md:p-0 border md:border-none rounded">
+                        <span class="text-[10px] text-gray-500 pl-1">Ayın kaçı:</span>
+                        <input type="text" id="recurring-day" placeholder="Gün" class="p-1 md:p-1.5 text-xs border rounded w-12 bg-white">
                     </div>
 
-                    <input type="text" id="description" placeholder="Açıklama (İsteğe bağlı)" class="p-1.5 text-xs border rounded flex-1 min-w-[120px] bg-white">
+                    <input type="text" id="description" placeholder="Açıklama (İsteğe bağlı)" class="p-2 md:p-1.5 text-xs border rounded bg-white col-span-2 md:flex-1 md:min-w-[120px]">
                     
-                    <div class="flex gap-1">
-                        <button type="submit" id="submit-btn" class="bg-indigo-600 text-white text-xs font-bold py-1.5 px-3 rounded hover:bg-indigo-700">EKLE</button>
-                        <button type="button" id="cancel-btn" class="hidden bg-gray-400 text-white text-xs font-bold py-1.5 px-3 rounded hover:bg-gray-500">İPTAL</button>
+                    <div class="flex gap-1 col-span-2 md:col-span-1 justify-end w-full md:w-auto mt-1 md:mt-0">
+                        <button type="submit" id="submit-btn" class="bg-indigo-600 text-white text-xs font-bold py-2 md:py-1.5 px-4 md:px-3 rounded hover:bg-indigo-700 w-full md:w-auto text-center">EKLE</button>
+                        <button type="button" id="cancel-btn" class="hidden bg-gray-400 text-white text-xs font-bold py-2 md:py-1.5 px-4 md:px-3 rounded hover:bg-gray-500 w-full md:w-auto text-center">İPTAL</button>
                     </div>
                 </form>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
+            <div class="overflow-x-auto md:overflow-visible">
+                <table class="w-full text-left border-collapse text-xs block md:table">
+                    <thead class="hidden md:table-header-group">
                         <tr class="bg-gray-100 border-b">
                             <th class="py-1.5 px-2 font-semibold text-gray-600 w-28 whitespace-nowrap">Zamanlama</th>
                             <th class="py-1.5 px-2 font-semibold text-gray-600 w-20">Tür</th>
@@ -88,7 +88,7 @@
                             <th class="py-1.5 px-2 font-semibold text-gray-600 w-20 text-center">İşlem</th>
                         </tr>
                     </thead>
-                    <tbody id="transaction-list"></tbody>
+                    <tbody id="transaction-list" class="block md:table-row-group"></tbody>
                 </table>
             </div>
 
@@ -99,4 +99,4 @@
 
     <script src="app.js"></script>
 </body>
-</html>	
+</html>
