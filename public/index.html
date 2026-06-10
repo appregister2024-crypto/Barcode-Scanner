@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cüzdanım - Gelir & Gider Takibi</title>
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-2 md:p-4 font-sans text-sm">
+
+    <div class="w-full bg-white rounded shadow-md overflow-hidden">
+        
+        <div class="bg-indigo-600 p-2 md:p-3 text-white flex justify-between items-center">
+            <h1 class="text-base font-bold">💰 Cüzdanım</h1>
+        </div>
+
+        <div class="p-3 md:p-4">
+            <div id="warning-message" class="hidden mb-3 py-1.5 px-3 rounded text-xs font-bold text-center"></div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                <div class="p-2 rounded bg-blue-50 border border-blue-200">
+                    <h2 class="text-gray-600 text-[10px] font-bold uppercase">Toplam Birikim</h2>
+                    <p id="total-savings" class="text-base font-bold text-blue-600">Explicitly ₺ 0,00</p>
+                </div>
+                <div class="p-2 rounded bg-green-50 border border-green-200">
+                    <h2 class="text-gray-600 text-[10px] font-bold uppercase">Aylık Gelir</h2>
+                    <p id="total-income" class="text-base font-bold text-green-600">₺ 0,00</p>
+                </div>
+                <div class="p-2 rounded bg-red-50 border border-red-200">
+                    <h2 class="text-gray-600 text-[10px] font-bold uppercase">Toplam Gider</h2>
+                    <p id="total-expense" class="text-base font-bold text-red-600">₺ 0,00</p>
+                </div>
+                <div id="balance-card" class="p-2 rounded border transition-colors duration-300">
+                    <h2 class="text-gray-600 text-[10px] font-bold uppercase">Aylık Kalan Bakiye</h2>
+                    <p id="total-balance" class="text-base font-bold">₺ 0,00</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-2 md:p-3 rounded border mb-4">
+                <form id="transaction-form" class="flex flex-wrap items-center gap-2">
+                    <select id="type" class="p-1.5 text-xs border rounded bg-white" required>
+                        <option value="gelir">Gelir</option>
+                        <option value="gider">Gider</option>
+                    </select>
+                    
+                    <select id="income-type" class="p-1.5 text-xs border rounded bg-white">
+                        <option value="aylik">Aylık/Düzenli</option>
+                        <option value="birikim">Birikim</option>
+                    </select>
+
+                    <input type="text" id="amount" inputmode="decimal" placeholder="Tutar (Örn: 1500)" class="p-1.5 text-xs border rounded w-24 bg-white" required>
+                    <input type="text" id="category" placeholder="Kategori" class="p-1.5 text-xs border rounded w-24 bg-white" required>
+                    
+                    <select id="fix-var-type" class="p-1.5 text-xs border rounded bg-white" required>
+                        <option value="sabit">Sabit</option>
+                        <option value="degisken">Değişken</option>
+                    </select>
+
+                    <select id="recurring" class="p-1.5 text-xs border rounded bg-white" required>
+                        <option value="tek">Tek Seferlik</option>
+                        <option value="duzenli">Her Ay</option>
+                    </select>
+
+                    <div id="recurring-day-container" class="hidden items-center gap-1">
+                        <span class="text-[10px] text-gray-500">Ayın:</span>
+                        <input type="text" id="recurring-day" placeholder="Gün" class="p-1.5 text-xs border rounded w-12 bg-white">
+                    </div>
+
+                    <input type="text" id="description" placeholder="Açıklama (İsteğe bağlı)" class="p-1.5 text-xs border rounded flex-1 min-w-[120px] bg-white">
+                    
+                    <div class="flex gap-1">
+                        <button type="submit" id="submit-btn" class="bg-indigo-600 text-white text-xs font-bold py-1.5 px-3 rounded hover:bg-indigo-700">EKLE</button>
+                        <button type="button" id="cancel-btn" class="hidden bg-gray-400 text-white text-xs font-bold py-1.5 px-3 rounded hover:bg-gray-500">İPTAL</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-gray-100 border-b">
+                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-28 whitespace-nowrap">Zamanlama</th>
+                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-20">Tür</th>
+                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-56">Kategori</th>
+                            <th class="py-1.5 px-8 font-semibold text-gray-600">Açıklama</th> 
+                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-32 text-right">Tutar</th>
+                            <th class="py-1.5 px-2 font-semibold text-gray-600 w-20 text-center">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-list"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3 overflow-hidden pointer-events-none"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>	

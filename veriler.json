@@ -1,0 +1,167 @@
+[
+  {
+    "id": 1781035531182,
+    "type": "gelir",
+    "incomeType": "birikim",
+    "fixVarType": "degisken",
+    "amount": 330000,
+    "category": "Birikim Hesabı",
+    "description": "Türkiye Sigorta Bireysel Emeklilik Birikimi",
+    "isRecurring": false,
+    "recurringDay": null
+  },
+  {
+    "id": 1781035936581,
+    "type": "gelir",
+    "incomeType": "birikim",
+    "fixVarType": "degisken",
+    "amount": 69000,
+    "category": "Birikim Hesabı",
+    "description": "Binance Kripto Hesabı",
+    "isRecurring": false,
+    "recurringDay": null
+  },
+  {
+    "id": 1781035987766,
+    "type": "gelir",
+    "incomeType": "aylik",
+    "fixVarType": "degisken",
+    "amount": 98000,
+    "category": "Maaş",
+    "description": "Maaş",
+    "isRecurring": true,
+    "recurringDay": "2"
+  },
+  {
+    "id": 1781036435454,
+    "type": "gelir",
+    "incomeType": "aylik",
+    "fixVarType": "sabit",
+    "amount": 15000,
+    "category": "Kira",
+    "description": "Kaporta-Boya",
+    "isRecurring": true,
+    "recurringDay": "5"
+  },
+  {
+    "id": 1781036402422,
+    "type": "gelir",
+    "incomeType": "aylik",
+    "fixVarType": "sabit",
+    "amount": 23000,
+    "category": "Kira",
+    "description": "Lokanta",
+    "isRecurring": true,
+    "recurringDay": "15"
+  },
+  {
+    "id": 1781036056006,
+    "type": "gelir",
+    "incomeType": "aylik",
+    "fixVarType": "sabit",
+    "amount": 24590,
+    "category": "Maaş",
+    "description": "Emekli Maaşı",
+    "isRecurring": true,
+    "recurringDay": "23"
+  },
+  {
+    "id": 1781036350159,
+    "type": "gelir",
+    "incomeType": "aylik",
+    "fixVarType": "sabit",
+    "amount": 25000,
+    "category": "Kira",
+    "description": "Testereci",
+    "isRecurring": true,
+    "recurringDay": "30"
+  },
+  {
+    "id": 1781036374878,
+    "type": "gelir",
+    "incomeType": "aylik",
+    "fixVarType": "sabit",
+    "amount": 30000,
+    "category": "Kira",
+    "description": "Tamirci",
+    "isRecurring": true,
+    "recurringDay": "30"
+  },
+  {
+    "id": 1781036763527,
+    "type": "gider",
+    "incomeType": null,
+    "fixVarType": "degisken",
+    "amount": 213152,
+    "category": "Kredi Kartı",
+    "description": "Vakıfbank Kredi Kartı",
+    "isRecurring": false,
+    "recurringDay": null
+  },
+  {
+    "id": 1781036870727,
+    "type": "gider",
+    "incomeType": null,
+    "fixVarType": "degisken",
+    "amount": 109000,
+    "category": "Esnek Hesap",
+    "description": "Yapı Kredi Esnek Hesap Kullanımı",
+    "isRecurring": false,
+    "recurringDay": null
+  },
+  {
+    "id": 1781037527238,
+    "type": "gider",
+    "incomeType": null,
+    "fixVarType": "degisken",
+    "amount": 22000,
+    "category": "Altın Günü",
+    "description": "Altın Günü",
+    "isRecurring": true,
+    "recurringDay": "2"
+  },
+  {
+    "id": 1781036476502,
+    "type": "gider",
+    "incomeType": null,
+    "fixVarType": "sabit",
+    "amount": 33708,
+    "category": "Kredi",
+    "description": "Enpara",
+    "isRecurring": true,
+    "recurringDay": "19"
+  },
+  {
+    "id": 1781036964446,
+    "type": "gider",
+    "incomeType": null,
+    "fixVarType": "sabit",
+    "amount": 15629.24,
+    "category": "Belediye Hissesi",
+    "description": "Belediye Hissesi (SY)",
+    "isRecurring": true,
+    "recurringDay": "22"
+  },
+  {
+    "id": 1781037013758,
+    "type": "gider",
+    "incomeType": null,
+    "fixVarType": "sabit",
+    "amount": 15627.74,
+    "category": "Belediye Hissesi",
+    "description": "Belediye Hissesi (YY)",
+    "isRecurring": true,
+    "recurringDay": "23"
+  },
+  {
+    "id": 1781036518854,
+    "type": "gider",
+    "incomeType": null,
+    "fixVarType": "sabit",
+    "amount": 13670,
+    "category": "Kredi",
+    "description": "Teb",
+    "isRecurring": true,
+    "recurringDay": "26"
+  }
+]
