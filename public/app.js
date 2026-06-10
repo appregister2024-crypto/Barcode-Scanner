@@ -16,9 +16,17 @@ const warningMessage = document.getElementById('warning-message');
 const submitBtn = document.getElementById('submit-btn');
 const cancelBtn = document.getElementById('cancel-btn');
 
+// Raporlama DOM Elementleri
+const reportModal = document.getElementById('report-modal');
+const openReportBtn = document.getElementById('open-report-btn');
+const closeReportBtn = document.getElementById('close-report-btn');
+const chartEmptyMessage = document.getElementById('chart-empty-message');
+const chartCanvas = document.getElementById('expensePieChart');
+
 let transactions = []; 
 let editId = null; 
 let duesChecked = false; 
+let myPieChart = null; // Eski grafik kalıntılarını silmek için kilit hafıza
 
 function parseAmount(value) {
     if (!value) return 0;
@@ -209,7 +217,6 @@ function updateUI() {
             else if (t.type === 'gider') expense += t.amount;
 
             const rowDiv = document.createElement('div');
-            // 💻 MASAÜSTÜ GRID PAYLAŞIMI: Başlıklarla tam uyumlu (2 + 1 + 2 + 4 + 2 + 1 = 12 kolon)
             rowDiv.className = "border md:border-b border-gray-200 md:border-gray-100 hover:bg-gray-50/80 transition-colors grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center p-3 md:py-2 md:px-4 mb-3 md:mb-0 rounded-lg md:rounded-none bg-gray-50 md:bg-transparent shadow-sm md:shadow-none";
             
             let zamanlamaMetni = t.isRecurring ? `Her Ayın ${t.recurringDay}. Günü` : 'Tek Seferlik';
@@ -226,12 +233,10 @@ function updateUI() {
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Zamanlama:</span>
                     <span class="font-medium text-gray-700 md:font-normal md:text-gray-500">${zamanlamaMetni}</span>
                 </div>
-
                 <div class="md:col-span-1 flex items-center justify-between md:block mt-0.5 md:mt-0">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Tür:</span>
                     <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${turRengi}">${turMetni}</span>
                 </div>
-                
                 <div class="md:col-span-2 flex items-center justify-between md:block mt-0.5 md:mt-0">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Kategori:</span>
                     <div class="flex items-center gap-1.5">
@@ -239,17 +244,14 @@ function updateUI() {
                         <span class="font-bold md:font-medium text-gray-800 md:text-inherit">${t.category}</span>
                     </div>
                 </div>
-                
                 <div class="md:col-span-4 flex items-center justify-between md:block text-gray-600 mt-0.5 md:mt-0">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Açıklama:</span>
                     <span class="text-right md:text-left">${aciklamaMetni}</span>
                 </div>
-                
                 <div class="md:col-span-2 flex items-center justify-between md:block font-bold ${tutarRengi} md:text-right border-t md:border-t-0 border-gray-200/60 mt-1 md:mt-0 pt-1.5 md:pt-0">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Tutar:</span>
                     <span class="text-sm md:text-xs font-black md:font-bold">${t.type === 'gelir' ? '+' : '-'} ₺${formatTL(t.amount)}</span>
                 </div>
-                
                 <div class="md:col-span-1 flex items-center justify-end md:justify-center gap-1 mt-1 md:mt-0">
                     <button onclick="editTransaction(${t.id})" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1.5 rounded-md transition-colors" title="Düzenle">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
@@ -290,6 +292,102 @@ function updateUI() {
         balanceCard.classList.add('bg-green-50', 'border-green-200', 'text-green-800');
     }
 }
+
+// 📊 SİHİRLİ RAPOR MOTORU: Giderleri toplayıp pasta grafiğine basar
+function initAndRenderChart() {
+    // 1. Sadece giderleri filtrele
+    const expenses = transactions.filter(t => t.type === 'gider');
+    
+    if (expenses.length === 0) {
+        chartEmptyMessage.classList.remove('hidden');
+        chartCanvas.classList.add('hidden');
+        return;
+    }
+
+    chartEmptyMessage.classList.add('hidden');
+    chartCanvas.classList.remove('hidden');
+
+    // 2. Kategorilere göre harcamaları grupla ve topla
+    const categoryTotals = {};
+    expenses.forEach(t => {
+        const cat = t.category.trim();
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount;
+    });
+
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+
+    // 3. Pasta dilimleri için şık ve sabit bütçe renk tonları (Eğer yetmezse rastgele ton üretir)
+    const presetColors = ['#4F46E5', '#EF4444', '#F59E0B', '#10B981', '#06B6D4', '#EC4899', '#8B5CF6', '#F97316'];
+    const backgroundColors = labels.map((_, index) => presetColors[index % presetColors.length]);
+
+    // 4. Mükerrer grafik binmelerini önlemek için eskisini yok et
+    if (myPieChart) {
+        myPieChart.destroy();
+    }
+
+    // 5. Sıfırdan Chart.js Grafik Kurulumu
+    myPieChart = new Chart(chartCanvas, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10,
+                        font: { size: 10, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            return ` ₺${formatTL(value)}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 👁️ Modal Kontrol Etkinlikleri
+openReportBtn.addEventListener('click', () => {
+    reportModal.classList.remove('hidden');
+    reportModal.classList.add('flex');
+    setTimeout(() => {
+        reportModal.querySelector('.bg-white').classList.remove('scale-95');
+        reportModal.querySelector('.bg-white').classList.add('scale-100');
+    }, 10);
+    initAndRenderChart(); // Açıldığı an güncel listeyi tara ve çiz
+});
+
+function closeReportModal() {
+    reportModal.querySelector('.bg-white').classList.remove('scale-100');
+    reportModal.querySelector('.bg-white').classList.add('scale-95');
+    setTimeout(() => {
+        reportModal.classList.remove('flex');
+        reportModal.classList.add('hidden');
+    }, 150);
+}
+
+closeReportBtn.addEventListener('click', closeReportModal);
+// Dışarı tıklayınca kapansın
+reportModal.addEventListener('click', (e) => {
+    if (e.target === reportModal) closeReportModal();
+});
 
 function checkDueDates() {
     if (duesChecked) return; 
