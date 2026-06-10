@@ -41,26 +41,25 @@ typeSelect.addEventListener('change', (e) => {
 recurringSelect.addEventListener('change', (e) => {
     if (e.target.value === 'duzenli') {
         recurringDayContainer.classList.remove('hidden');
+        recurringDayContainer.classList.replace('hidden', 'flex');
     } else {
-        recurringDayContainer.classList.add('hidden');
+        recurringDayContainer.classList.replace('flex', 'hidden');
         document.getElementById('recurring-day').value = '';
     }
 });
 
-// Sunucu bağlantısını denetleyen gelişmiş veri çekici
 async function fetchTransactions() {
     try {
         const response = await fetch('/api/transactions');
         if (!response.ok) throw new Error("Sunucu hata döndürdü.");
-        
         transactions = await response.json();
-        warningMessage.classList.add('hidden'); // Bağlantı başarılıysa uyarıyı gizle
+        warningMessage.classList.add('hidden'); 
         updateUI();
     } catch (error) {
         console.error("Veriler sunucudan alınamadı:", error);
         warningMessage.classList.remove('hidden');
         warningMessage.className = "mb-3 py-1.5 px-3 rounded text-xs font-bold text-center bg-red-600 text-white animate-pulse";
-        warningMessage.innerText = "⚠️ BAĞLANTI HATASI: Sunucuya ulaşılamıyor! Lütfen terminalde 'node server.js' komutunun açık olduğunu doğrulayın.";
+        warningMessage.innerText = "⚠️ BAĞLANTI HATASI: Sunucuya ulaşılamıyor! Lütfen terminalde sunucunun açık olduğunu doğrulayın.";
     }
 }
 
@@ -119,7 +118,7 @@ form.addEventListener('submit', async function(e) {
 
 function resetDynamicFields() {
     incomeTypeSelect.classList.remove('hidden');
-    recurringDayContainer.classList.add('hidden');
+    recurringDayContainer.classList.replace('flex', 'hidden');
     fixVarTypeSelect.value = 'sabit'; 
 }
 
@@ -147,6 +146,7 @@ function editTransaction(id) {
     submitBtn.classList.replace('bg-indigo-600', 'bg-green-600');
     submitBtn.classList.replace('hover:bg-indigo-700', 'hover:bg-green-700');
     cancelBtn.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Düzenleye basınca yukarı yumuşak kaydır
 }
 
 cancelBtn.addEventListener('click', () => {
@@ -180,9 +180,8 @@ function updateUI() {
     let monthlyIncome = 0;
     let expense = 0;
 
-    // Veritabanı boşsa arayüze bilgi satırı ekle
     if (transactions.length === 0) {
-        transactionList.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-gray-400 font-medium">Henüz hiçbir gelir veya gider kaydı bulunmuyor.</td></tr>`;
+        transactionList.innerHTML = `<tr class="block md:table-row"><td colspan="6" class="block md:table-cell py-8 text-center text-gray-400 font-medium bg-gray-50 md:bg-transparent rounded-lg border md:border-none">Henüz hiçbir gelir veya gider kaydı bulunmuyor.</td></tr>`;
     } else {
         transactions.sort((a, b) => {
             const getTypeWeight = (t) => {
@@ -210,7 +209,8 @@ function updateUI() {
             else if (t.type === 'gider') expense += t.amount;
 
             const tr = document.createElement('tr');
-            tr.className = "border-b hover:bg-gray-50 transition-colors";
+            // 📱 MOBİLDE KART (BLOCK DÜZENİ), PC'DE KILASİK SATIR (TABLE-ROW)
+            tr.className = "border md:border-b border-gray-200 md:border-gray-100 hover:bg-gray-50 transition-colors block md:table-row p-3 mb-3 md:mb-0 rounded-lg bg-gray-50 md:bg-transparent shadow-sm md:shadow-none";
             
             let zamanlamaMetni = t.isRecurring ? `Her Ayın ${t.recurringDay}. Günü` : 'Tek Seferlik';
             let turMetni = t.type === 'gelir' ? (t.incomeType === 'birikim' ? 'BİRİKİM' : 'GELİR') : 'GİDER';
@@ -222,19 +222,45 @@ function updateUI() {
             let nitelikRengi = t.fixVarType === 'degisken' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-gray-100 text-gray-600 border-gray-200';
 
             tr.innerHTML = `
-                <td class="py-1.5 px-2 text-gray-500 whitespace-nowrap">${zamanlamaMetni}</td>
-                <td class="py-1.5 px-2"><span class="px-1.5 py-0.5 rounded text-[10px] text-white ${turRengi}">${turMetni}</span></td>
-                <td class="py-1.5 px-2">
-                    <div class="flex items-center gap-2">
-                        <span class="inline-block w-16 text-center px-1 border rounded text-[8px] font-bold ${nitelikRengi} shrink-0">${nitelik}</span>
-                        <span class="font-medium whitespace-nowrap">${t.category}</span>
+                <td class="block md:table-cell py-1 md:py-1.5 px-0 md:px-2 text-gray-500 whitespace-nowrap">
+                    <div class="flex items-center justify-between md:block">
+                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Zamanlama / Tür:</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-medium text-gray-700 md:font-normal md:text-gray-500">${zamanlamaMetni}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${turRengi}">${turMetni}</span>
+                        </div>
                     </div>
                 </td>
-                <td class="py-1.5 px-8 text-gray-600">${aciklamaMetni}</td>
-                <td class="py-1.5 px-2 font-bold ${tutarRengi} text-right whitespace-nowrap">${t.type === 'gelir' ? '+' : '-'} ₺${formatTL(t.amount)}</td>
-                <td class="py-1.5 px-2 text-center whitespace-nowrap">
-                    <button onclick="editTransaction(${t.id})" class="text-blue-600 hover:text-blue-800 mr-2">Düz.</button>
-                    <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-700">Sil</button>
+                
+                <td class="block md:table-cell py-1 md:py-1.5 px-0 md:px-2 mt-1 md:mt-0">
+                    <div class="flex items-center justify-between md:block">
+                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Kategori:</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block w-14 text-center px-1 border rounded text-[8px] font-bold ${nitelikRengi} shrink-0">${nitelik}</span>
+                            <span class="font-bold md:font-medium text-gray-800 md:text-inherit">${t.category}</span>
+                        </div>
+                    </div>
+                </td>
+                
+                <td class="block md:table-cell py-1 md:py-1.5 px-0 md:px-8 text-gray-600">
+                    <div class="flex items-center justify-between md:block">
+                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Açıklama:</span>
+                        <span class="text-right md:text-left">${aciklamaMetni}</span>
+                    </div>
+                </td>
+                
+                <td class="block md:table-cell py-1.5 md:py-1.5 px-0 md:px-2 font-bold ${tutarRengi} text-right whitespace-nowrap border-t md:border-t-0 border-gray-200/60 mt-1 md:mt-0 pt-1.5 md:pt-1.5">
+                    <div class="flex items-center justify-between md:block w-full">
+                        <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Tutar:</span>
+                        <span class="text-sm md:text-xs font-black md:font-bold">${t.type === 'gelir' ? '+' : '-'} ₺${formatTL(t.amount)}</span>
+                    </div>
+                </td>
+                
+                <td class="block md:table-cell py-2 md:py-1.5 px-0 md:px-2 text-center whitespace-nowrap">
+                    <div class="flex items-center justify-end md:justify-center gap-2 w-full">
+                        <button onclick="editTransaction(${t.id})" class="text-blue-600 font-bold md:font-normal text-xs md:text-inherit bg-blue-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-blue-200 md:border-none shadow-sm md:shadow-none">Düzenle</button>
+                        <button onclick="deleteTransaction(${t.id})" class="text-red-500 font-bold md:font-normal text-xs md:text-inherit bg-red-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-red-200 md:border-none shadow-sm md:shadow-none">Sil</button>
+                    </div>
                 </td>
             `;
             transactionList.appendChild(tr);
@@ -316,7 +342,6 @@ function showToasts(dues) {
     });
 }
 
-// Otomatik Başlangıç
 fetchTransactions();
 
 if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
