@@ -209,8 +209,8 @@ function updateUI() {
             else if (t.type === 'gider') expense += t.amount;
 
             const rowDiv = document.createElement('div');
-            // 📊 SİHİRLİ HİZALAMA: Mobilde dikey kart, Masaüstünde 12 parçalı kusursuz grid satırı
-            rowDiv.className = "border md:border-b border-gray-200 md:border-gray-100 hover:bg-gray-50/80 transition-colors grid grid-cols-1 md:grid-cols-12 gap-2 items-center p-3 md:p-2 mb-3 md:mb-0 rounded-lg md:rounded-none bg-gray-50 md:bg-transparent shadow-sm md:shadow-none";
+            // 💻 PC'DE MILIMETRIK UYUM: md:grid-cols-12 ve md:px-4 ile üst başlık alanıyla birebir eşitlendi
+            rowDiv.className = "border md:border-b border-gray-200 md:border-gray-100 hover:bg-gray-50/80 transition-colors grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center p-3 md:py-2 md:px-4 mb-3 md:mb-0 rounded-lg md:rounded-none bg-gray-50 md:bg-transparent shadow-sm md:shadow-none";
             
             let zamanlamaMetni = t.isRecurring ? `Her Ayın ${t.recurringDay}. Günü` : 'Tek Seferlik';
             let turMetni = t.type === 'gelir' ? (t.incomeType === 'birikim' ? 'BİRİKİM' : 'GELİR') : 'GİDER';
@@ -222,7 +222,7 @@ function updateUI() {
             let nitelikRengi = t.fixVarType === 'degisken' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-gray-100 text-gray-600 border-gray-200';
 
             rowDiv.innerHTML = `
-                <div class="md:col-span-2 flex items-center justify-between md:block">
+                <div class="md:col-span-3 flex items-center justify-between md:block">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Zamanlama / Tür:</span>
                     <div class="flex items-center gap-1.5">
                         <span class="font-medium text-gray-700 md:font-normal md:text-gray-500">${zamanlamaMetni}</span>
@@ -230,7 +230,7 @@ function updateUI() {
                     </div>
                 </div>
                 
-                <div class="md:col-span-3 flex items-center justify-between md:block">
+                <div class="md:col-span-2 flex items-center justify-between md:block">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Kategori:</span>
                     <div class="flex items-center gap-1.5">
                         <span class="inline-block w-14 text-center px-1 border rounded text-[8px] font-bold ${nitelikRengi} shrink-0">${nitelik}</span>
@@ -238,7 +238,7 @@ function updateUI() {
                     </div>
                 </div>
                 
-                <div class="md:col-span-4 flex items-center justify-between md:block text-gray-600 md:pl-4">
+                <div class="md:col-span-4 flex items-center justify-between md:block text-gray-600">
                     <span class="md:hidden font-bold text-gray-400 text-[9px] uppercase tracking-wider">Açıklama:</span>
                     <span class="text-right md:text-left">${aciklamaMetni}</span>
                 </div>
@@ -248,9 +248,17 @@ function updateUI() {
                     <span class="text-sm md:text-xs font-black md:font-bold">${t.type === 'gelir' ? '+' : '-'} ₺${formatTL(t.amount)}</span>
                 </div>
                 
-                <div class="md:col-span-1 flex items-center justify-end md:justify-center gap-2 mt-1 md:mt-0">
-                    <button onclick="editTransaction(${t.id})" class="text-blue-600 font-bold md:font-normal text-xs md:text-inherit bg-blue-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-blue-200 md:border-none shadow-sm md:shadow-none">Düzenle</button>
-                    <button onclick="deleteTransaction(${t.id})" class="text-red-500 font-bold md:font-normal text-xs md:text-inherit bg-red-50 md:bg-transparent px-2.5 py-1 md:p-0 rounded border border-red-200 md:border-none shadow-sm md:shadow-none">Sil</button>
+                <div class="md:col-span-1 flex items-center justify-end md:justify-center gap-1 mt-1 md:mt-0">
+                    <button onclick="editTransaction(${t.id})" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1.5 rounded-md transition-colors" title="Düzenle">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                        </svg>
+                    </button>
+                    <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-700 hover:bg-red-100 p-1.5 rounded-md transition-colors" title="Sil">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </button>
                 </div>
             `;
             transactionList.appendChild(rowDiv);
