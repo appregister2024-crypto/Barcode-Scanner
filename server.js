@@ -1,83 +1,89 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const mongoose = require('mongoose');
 
 const app = express();
-const PORT = 3000;
-const DATA_FILE = path.join(__dirname, 'veriler.json');
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Geliştirilmiş Okuma Fonksiyonu (Hata Detayını Gösterir)
-function readData() {
-    if (!fs.existsSync(DATA_FILE)) {
-        fs.writeFileSync(DATA_FILE, JSON.stringify([]));
-        return [];
-    }
-    const content = fs.readFileSync(DATA_FILE, 'utf-8');
+// 🌐 MONGODB BULUT BAĞLANTI AYARI
+// Render ortamındaki gizli MONGO_URI değişkenine bağlanır, yoksa lokale bağlanmayı dener
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/cuzdanim';
+
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('🎯 Başarılı: MongoDB Bulut Veritabanına Bağlanıldı!'))
+    .catch(err => console.error('❌ Hata: Veritabanı bağlantısı başarısız:', err));
+
+// 📝 VERİTABANI ŞABLONU (SCHEMA)
+const transactionSchema = new mongoose.Schema({
+    id: { type: Number, required: true, unique: true },
+    type: String,
+    incomeType: String,
+    fixVarType: String,
+    amount: Number,
+    category: String,
+    description: String,
+    isRecurring: Boolean,
+    recurringDay: String
+}, { versionKey: false });
+
+const Transaction = mongoose.model('Transaction', transactionSchema);
+
+// 🛠️ API ENDPOINT'LERİ (Artık JSON dosyası yerine doğrudan bulut DB ile konuşuyor)
+
+// 1. Tüm Kayıtları Getir
+app.get('/api/transactions', async (req, res) => {
     try {
-        return JSON.parse(content || '[]');
-    } catch (parseError) {
-        console.error("❌ HATA: veriler.json dosyası okunurken JSON format hatası saptandı!");
-        console.error("Lütfen dosyanın içindeki süslü ve köşeli parantezleri kontrol edin.");
-        return []; // Hata durumunda uygulamanın çökmemesi için boş liste döner
+        const transactions = await Transaction.find({});
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ error: "Veriler buluttan çekilemedi." });
     }
-}
-
-function writeData(data) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-// Tarayıcı verileri istediğinde terminale rapor yazar
-app.get('/api/transactions', (req, res) => {
-    const transactions = readData();
-    console.log(`📊 Sunucu: veriler.json başarıyla okundu. Toplam kayıt sayısı: ${transactions.length}`);
-    res.json(transactions);
 });
 
-app.post('/api/transactions', (req, res) => {
+// 2. Yeni Kayıt Ekle
+app.post('/api/transactions', async (req, res) => {
     try {
-        const transactions = readData();
-        const newTransaction = req.body;
-        transactions.push(newTransaction);
-        writeData(transactions);
+        const newTransaction = new Transaction(req.body);
+        await newTransaction.save();
         res.status(201).json(newTransaction);
     } catch (error) {
-        res.status(500).json({ error: "Veri kaydedilemedi." });
+        res.status(500).json({ error: "Veri bulut veritabanına kaydedilemedi." });
     }
 });
 
-app.put('/api/transactions/:id', (req, res) => {
+// 3. Mevcut Kaydı Güncelle (Fiyat uçma sorununu çözen ana nokta)
+app.put('/api/transactions/:id', async (req, res) => {
     try {
-        const transactions = readData();
         const id = parseInt(req.params.id);
-        const updatedIndex = transactions.findIndex(t => t.id === id);
-
-        if (updatedIndex !== -1) {
-            transactions[updatedIndex] = { ...transactions[updatedIndex], ...req.body };
-            writeData(transactions);
-            res.json(transactions[updatedIndex]);
+        const updated = await Transaction.findOneAndUpdate({ id: id }, req.body, { new: true });
+        if (updated) {
+            res.json(updated);
         } else {
-            res.status(404).json({ error: "Kayıt bulunamadı." });
+            res.status(404).json({ error: "Güncellenecek kayıt bulunamadı." });
         }
     } catch (error) {
-        res.status(500).json({ error: "Güncellenemedi." });
+        res.status(500).json({ error: "Bulut üzerinde güncelleme başarısız." });
     }
 });
 
-app.delete('/api/transactions/:id', (req, res) => {
+// 4. Kayıt Sil
+app.delete('/api/transactions/:id', async (req, res) => {
     try {
-        const transactions = readData();
         const id = parseInt(req.params.id);
-        const filtered = transactions.filter(t => t.id !== id);
-        writeData(filtered);
-        res.json({ success: true });
+        const deleted = await Transaction.findOneAndDelete({ id: id });
+        if (deleted) {
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: "Silinecek kayıt bulunamadı." });
+        }
     } catch (error) {
-        res.status(500).json({ error: "Silinemedi." });
+        res.status(500).json({ error: "Bulut üzerinden silme işlemi başarısız." });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Sunucu http://localhost:${PORT} adresinde aktif!`);
+    console.log(`🚀 Uygulama bulut üzerinde, PORT: ${PORT} üzerinden yayında!`);
 });
